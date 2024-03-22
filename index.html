@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stack Overflow Prediction Model</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+      }
+      .container {
+        width: 70%;
+        margin-top: 40px;
+      }
+      h2,
+      h3 {
+        color: #333;
+      }
+      form {
+        margin-bottom: 20px;
+      }
+      label {
+        font-weight: bold;
+      }
+      input[type="number"],
+      input[type="text"],
+      input[type="button"] {
+        margin: 5px 0 15px;
+        padding: 8px;
+        width: calc(100% - 16px); /* Adjust for padding */
+        box-sizing: border-box;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+      }
+      input[type="button"] {
+        background-color: #4caf50;
+        color: white;
+        cursor: pointer;
+        margin-top: 20px;
+      }
+      input[type="button"]:hover {
+        background-color: #45a049;
+      }
+      #response {
+        background-color: #f4f4f4;
+        border: 1px solid #ddd;
+        padding: 10px;
+        border-radius: 5px;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Modelo de Predicción de StackOverflow</h2>
+      <form id="queryForm">
+        <label for="answer_length">Longitud de la respuesta:</label><br />
+        <input type="number" id="answer_length" name="answer_length" /><br />
+
+        <label for="response_time_hours">Tiempo de respuesta (horas):</label
+        ><br />
+        <input
+          type="number"
+          id="response_time_hours"
+          name="response_time_hours"
+          step="0.1"
+        /><br />
+
+        <label for="user_reputation">Reputación del usuario:</label><br />
+        <input
+          type="number"
+          id="user_reputation"
+          name="user_reputation"
+        /><br />
+
+        <label for="primary_tag">Etiqueta primaria:</label><br />
+        <input type="text" id="primary_tag" name="primary_tag" /><br />
+
+        <label for="answer_score">Puntaje de la respuesta:</label><br />
+        <input type="number" id="answer_score" name="answer_score" /><br />
+
+        <input type="button" value="Enviar" onclick="submitForm()" />
+      </form>
+
+      <h3>Respuesta:</h3>
+      <div id="response"></div>
+    </div>
+
+    <script>
+      function submitForm() {
+        const form = document.getElementById("queryForm");
+        const formData = {
+          answer_length: form.answer_length.value,
+          response_time_hours: parseFloat(form.response_time_hours.value),
+          user_reputation: parseInt(form.user_reputation.value),
+          primary_tag: form.primary_tag.value,
+          answer_score: parseInt(form.answer_score.value),
+        };
+
+        fetch(
+          "https://us-central1-bigdata-2024.cloudfunctions.net/model_calling",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(formData),
+          }
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            const formattedData = formatResponseData(data);
+            document.getElementById("response").innerHTML = formattedData;
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            document.getElementById("response").textContent =
+              "Failed to fetch.";
+          });
+      }
+
+      function formatResponseData(data) {
+        let formattedHtml = "";
+        data.forEach((item) => {
+          formattedHtml += `<div>Estado de respuesta predicho: <strong>${item.predicted_answer_status}</strong></div>`;
+          formattedHtml += `<div>Probabilidades:</div>`;
+          item.predicted_answer_status_probs.forEach((prob) => {
+            formattedHtml += `<div>&emsp;${prob.label}: ${Math.round(
+              prob.prob * 100
+            )}%</div>`;
+          });
+          formattedHtml += `<hr>`;
+        });
+        return formattedHtml.slice(0, -4); // Remove the last <hr>
+      }
+    </script>
+  </body>
+</html>
